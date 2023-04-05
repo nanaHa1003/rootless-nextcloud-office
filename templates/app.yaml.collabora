@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Pod
+metadata:
+  name: nextcloud
+  labels:
+    app: nextcloud
+spec:
+  containers:
+    - name: db
+      image: docker.io/library/mariadb
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: ${MYSQL_ROOT_PASSWORD}
+        - name: MYSQL_DATABASE
+          value: ${MYSQL_DATABASE}
+        - name: MYSQL_USER
+          value: ${MYSQL_USER}
+        - name: MYSQL_PASSWORD
+          value: ${MYSQL_PASSWORD}
+      volumeMounts:
+        - mountPath: /var/lib/mysql
+          name: nxc-db
+    - name: redis
+      image: docker.io/library/redis
+    - name: app
+      image: docker.io/library/nextcloud:fpm
+      env:
+        - name: MYSQL_HOST
+          value: 127.0.0.1
+        - name: MYSQL_DATABASE
+          value: ${MYSQL_DATABASE}
+        - name: MYSQL_USER
+          value: ${MYSQL_USER}
+        - name: MYSQL_PASSWORD
+          value: ${MYSQL_PASSWORD}
+        - name: REDIS_HOST
+          value: 127.0.0.1
+      volumeMounts:
+        - mountPath: /var/www/html
+          name: nxc-data
+    - name: office
+      image: collabora/code
+      env:
+        - value: "extra_params=--o:ssl.enable=false  --o:ssl.termination=true"
+      securityContext:
+        privileged: true
+    - name: nginx
+      image: localhost/nxc-nginx
+      ports:
+        - containerPort: ${NEXTCLOUD_HTTP_PORT}
+        - containerPort: ${NEXTCLOUD_HTTPS_PORT}
+        - containerPort: ${OFFICE_APP_PORT}
+      volumeMounts:
+        - mountPath: /etc/letsencrypt:Z
+          name: nxc-cert
+          readOnly: true
+        - mountPath: /var/www/html
+          name: nxc-data
+    - name: cron
+      image: localhost/nxc-cron
+      volumeMounts:
+        - mountPath: /etc/letsencrypt
+          name: nxc-cert
+        - mountPath: /var/www/html
+          name: nxc-data
+  volumes:
+    - name: nxc-db
+      hostPath:
+        path: ${PERSISTENT_STORAGE_PATH}/mysql
+        type: DirectoryOrCreate
+    - name: nxc-data
+      hostPath:
+        path: ${PERSISTENT_STORAGE_PATH}/data
+        type: DirectoryOrCreate
+    - name: nxc-cert
+      hostPath:
+        path: ${PERSISTENT_STORAGE_PATH}/letsencrypt
+        type: Directory
+
