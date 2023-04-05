@@ -41,3 +41,11 @@
      - The token is the `JWT_SECRET` in your `config.sh`
 
  #### 6. Enjoy
+
+## Notes
+
+ 1. If you want to change the cron job frequency, you need to modify the `cron/setup.sh`.
+ 
+ 2. The collabora container will run in privileged mode, which may not be very secure.
+ 
+ 3. The community version of OnlyOffice does not support mobile edit, use collabora instead if you need this functionality.
